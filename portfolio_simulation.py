@@ -88,3 +88,52 @@ plt.xlabel("Valor del Portafolio ($)")
 plt.ylabel("Frecuencia")
 plt.legend()
 plt.show()
+
+# Gráfico de distribución acumulativa
+plt.figure(figsize=(8, 6))
+sns.ecdfplot(final_values, label="CDF (Distribución Acumulativa)")
+plt.axvline(percentile_5, color="red", linestyle="--", label="VaR (5%)")
+plt.axvline(percentile_95, color="green", linestyle="--", label="Percentil 95%")
+plt.title("Distribución Acumulativa del Portafolio")
+plt.xlabel("Valor del Portafolio ($)")
+plt.ylabel("Probabilidad Acumulada")
+plt.legend()
+plt.show()
+
+# Análisis de sensibilidad
+sensitivity_results = {}
+for asset, data in portfolio.items():
+    original_mean = np.mean(final_values)
+    
+    # Aumentar rendimiento en un 1%
+    modified_portfolio = portfolio.copy()
+    modified_portfolio[asset]["mean_return"] *= 1.01
+    modified_results = montecarlo_simulation(modified_portfolio, initial_capital, num_simulations, days)
+    modified_mean = np.mean(modified_results[:, -1])
+    
+    # Calcular sensibilidad como porcentaje
+    sensitivity_results[asset] = 100 * (modified_mean - original_mean) / original_mean
+
+# Mostrar sensibilidad
+sensitivity_df = pd.DataFrame.from_dict(sensitivity_results, orient='index', columns=['Sensibilidad (%)'])
+print(sensitivity_df)
+
+# Gráfico de barras para sensibilidad
+sensitivity_df.sort_values(by="Sensibilidad (%)", ascending=False).plot(kind="bar", figsize=(10, 6), legend=False)
+plt.title("Análisis de Sensibilidad del Portafolio")
+plt.xlabel("Activo")
+plt.ylabel("Sensibilidad (%)")
+plt.tight_layout()
+plt.show()
+
+# Exportar resultados
+results_df = pd.DataFrame(simulated_results)
+results_df.to_csv("simulated_portfolio_results.csv", index=False)
+
+statistics_df = pd.DataFrame({
+    "Promedio Final": [mean_final],
+    "Desviación Estándar": [std_final],
+    "Percentil 5% (VaR)": [percentile_5],
+    "Percentil 95%": [percentile_95]
+})
+statistics_df.to_csv("portfolio_statistics.csv", index=False)
